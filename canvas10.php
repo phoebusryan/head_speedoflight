@@ -1,14 +1,14 @@
 <?php
-error_reporting(E_ALL);
-ini_set('display_errors',1);
-  $Root = dirname(__FILE__).'/json_data/';
-  if(empty(($File = $_GET['file']))) die();
-
-  $fh = fopen('json_data/'.$File,"r");
-  $Content = fread($fh,filesize('json_data/'.$File));
-  fclose($fh);
-  $Content = json_decode($Content,1);
-  $debug = ((isset($_GET['debug'])) ? $_GET['debug'] : 'false');
+	error_reporting(E_ALL);
+	ini_set('display_errors',1);
+	
+	$Root = dirname(__FILE__).'/json_data/';
+	if(empty(($File = $_GET['file']))) die();
+	
+	$fh = fopen('json_data/'.$File,"r");
+	$Content = fread($fh,filesize('json_data/'.$File));
+	fclose($fh);
+	$Content = json_decode($Content,1);
 ?>
 <!DOCTYPE html>
 <html lang="en">
