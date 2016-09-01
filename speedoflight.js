@@ -1,11 +1,11 @@
 function speedoflight() {
-	 //holdervariables:
+	 //holdervariables
 	var renderer, scene, camera, controls, effectFXAA, composer;
 	
-	//animationvariables:
+	//animationvariables
 	var nEnd = 0, nMax, nStep;
 	
-	//statusvariables:
+	//statusvariables
 	var drawn = false, isRecording = false;
 	
 	//groupvariables
@@ -202,7 +202,6 @@ function speedoflight() {
 		//Start - definition des materials
 			var material = new THREE.MeshBasicMaterial({
 				color: 0xffffff, //Farbe der Linie
-				wireframe: false, //Gitterraster anzeigen?
 				side: THREE.DoubleSide
 			});
 		//End - definition des materials
@@ -226,7 +225,6 @@ function speedoflight() {
 			path,
 			100, //segments (Qualität)
 			0.2, //radius (Dicke)
-			//Math.random(),
 			30,//radiusSegments (anzahl Ecken)
 			false
 		);
@@ -272,10 +270,10 @@ function speedoflight() {
 	this.record = function() {
 		console.log('recording start..');
 		
-		//Start - enable camerarotation
+		//Start - disable camerarotation
 			controls.enabled = false;
 			isRecording = true;
-		//End - enable camerarotation
+		//End - disable camerarotation
 		
 		nEnd = 0;
 		
@@ -293,7 +291,6 @@ function speedoflight() {
 			
 			imgData = renderer.domElement.toDataURL();
 			pictures.push(imgData);
-			
 		} while(nEnd + nStep < nMax)
 		
 		//Start - save cameraposition
@@ -311,7 +308,8 @@ function speedoflight() {
 		//End - enable camerarotation
 		
 		console.log('recording stop..');
-		//console.log(pictures);
+		
+		console.log(pictures.length);
 	}
 	
 	var onWindowResize = function() {
