@@ -30,7 +30,6 @@ function speedoflight() {
 	}
 	
 	this.setMeshColor = function (hue, saturation, lightness) {
-		//t: ändern, damit jedes segment eine eigene lightness hat
 		for (var i = 0; i < meshes.length; i++) {
 			meshes[i].material.color.setHSL(hue, saturation, lightness);
 		}
