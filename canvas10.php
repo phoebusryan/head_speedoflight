@@ -36,7 +36,7 @@
 			var points = [];
 			
 			$(document).ready(function() {
-				$('.options input[name=hue], .options input[name=saturation], .options input[name=lightness]').change(function() {
+				$('.options input[name=hue], .options input[name=saturation]').change(function() {
 					var hue = $('input[name=hue]').val();
 					var saturation = $('input[name=saturation]').val();
 					
