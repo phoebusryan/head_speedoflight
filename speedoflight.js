@@ -1,6 +1,6 @@
 function speedoflight() {
 	 //holdervariables:
-	var renderer, scene, camera, controls;
+	var renderer, scene, camera, controls, effectFXAA, composer;
 	
 	//animationvariables:
 	var nEnd = 0, nMax, nStep;
@@ -13,10 +13,6 @@ function speedoflight() {
 	
 	//configvariables
 	var debug = false;
-	
-	var effectFXAA;
-	var composer;
-	
 	
 	this.init = function() {
 		renderer = new THREE.WebGLRenderer();
