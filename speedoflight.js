@@ -1,12 +1,12 @@
 function speedoflight() {
 	 //holdervariables
-	var renderer, scene, camera, controls, effectFXAA, composer;
+	var renderer, scene, camera, controls, effectFXAA, composer, containerElement, containerWidth, containerHeight;
 	
 	//animationvariables
 	var nEnd = 0, nMax, nStep;
 	
 	//statusvariables
-	var drawn = false, isRecording = false;
+	var drawn = false;
 	
 	//groupvariables
 	var meshes = [];
@@ -14,21 +14,51 @@ function speedoflight() {
 	//configvariables
 	var debug = false;
 	
-	this.init = function() {
-		renderer = new THREE.WebGLRenderer();
+	this.init = function(container) {
+		containerElement = document.getElementById(container);
+		
+		setCanvasSize();
+		
+		renderer = new THREE.WebGLRenderer({
+			preserveDrawingBuffer: true 
+		});
 		renderer.setClearColor(0x000000); //BG-Color
 		renderer.setPixelRatio(window.devicePixelRatio);
-		renderer.setSize(window.innerWidth, window.innerHeight);
+		
 		renderer.autoClear = false;
-		document.body.appendChild(renderer.domElement);
+		
+		renderer.setSize(containerWidth, containerHeight);
+		
+		containerElement.appendChild(renderer.domElement);
 		
 		scene = new THREE.Scene();
+	}
+	
+	this.redraw = function () {
+		drawn = false;
+		nEnd = 0;
 	}
 	
 	this.setMeshColor = function (hue, saturation, lightness) {
 		for (var i = 0; i < meshes.length; i++) {
 			meshes[i].material.color.setHSL(hue, saturation, lightness);
 		}
+	}
+	
+	this.getCameraPosition = function() {
+		return camera.position;
+	}
+	
+	this.setCameraPosition = function (x, y, z) {
+		camera.position.set(x, y, z);
+	}
+	
+	this.getCameraRotation = function() {
+		return camera.rotation;
+	}
+	
+	this.setCameraRotation = function (x, y, z) {
+		camera.rotation.set(x, y, z);
 	}
 	
 	this.drawForm = function(coordinateSets, form, brushes, spaceBetweenLines) {
@@ -65,7 +95,7 @@ function speedoflight() {
 			//Start - define the cameraperspective
 				camera = new THREE.PerspectiveCamera(
 					90, // Field of view
-					window.innerWidth / window.innerHeight, // Aspect ratio
+					containerWidth / containerHeight, // Aspect ratio
 					1, //Near
 					1000 //Far
 				);
@@ -73,14 +103,13 @@ function speedoflight() {
 			
 			//Start - calculate the cameraposition
 				var smallestCoordinate = getSmallestCoordinate(centerX,centerY,centerZ);
-				
-				camera.position.set(
+				this.setCameraPosition(
 					centerX-((smallestCoordinate == 'x') ? geometries[0].boundingBox.max.x - geometries[0].boundingBox.min.x : 0),
 					centerY-((smallestCoordinate == 'y') ? geometries[0].boundingBox.max.y - geometries[0].boundingBox.min.y : 0),
 					centerZ-((smallestCoordinate == 'z') ? geometries[0].boundingBox.max.z - geometries[0].boundingBox.min.z : 0)
 				);
 				
-				camera.lookAt(new THREE.Vector3(centerX,centerY,centerZ));
+				this.setCameraRotation(centerX, centerY, centerZ);
 			//End - calculate the cameraposition
 			
 			scene.add(camera);
@@ -100,8 +129,8 @@ function speedoflight() {
 			
 			effectFXAA = new THREE.ShaderPass(THREE.FXAAShader);
 			
-			var width = window.innerWidth || 2;
-			var height = window.innerHeight || 2;
+			var width = containerWidth || 2;
+			var height = containerHeight || 2;
 			
 			effectFXAA.uniforms['resolution'].value.set(1 / width, 1 / height);
 			
@@ -154,8 +183,7 @@ function speedoflight() {
 				//todo: berechnung anhand smallestCoordinate
 				
 				var totalBrushes = (brushes-1)*3;
-				var angle = Math.cos(30*Math.PI/180); //30° in radians
-				
+				var angle = Math.cos(30*Math.PI/180); //degrees in radians
 				for (var i = 1; i < totalBrushes; i++) {
 					if (i < brushes) {
 						var counter = 0;
@@ -180,7 +208,7 @@ function speedoflight() {
 							}
 							
 							points[i].push(new THREE.Vector3(
-								x,
+								x, 
 								y,
 								coordinateSets[j]['z']
 							).multiplyScalar(3));
@@ -191,7 +219,25 @@ function speedoflight() {
 				}
 			break;
 			case 'circle':
+				//todo: berechnung anhand smallestCoordinate
 				var totalBrushes = brushes;
+				for (var i = 1; i <= totalBrushes; i++) {
+					//Start - define vectors
+						points[i] = new Array();
+						
+						for (var j = 0; j < coordinateSets.length; j++) {
+							x = coordinateSets[j]['x'] + Math.cos(((2*Math.PI)/totalBrushes)*i) * spaceBetweenLines;
+							y = coordinateSets[j]['y'] + Math.sin(((2*Math.PI)/totalBrushes)*i) * spaceBetweenLines;
+							points[i].push(new THREE.Vector3(
+								x, 
+								y,
+								coordinateSets[j]['z']
+							).multiplyScalar(3));
+						}
+					//End - define vectors
+					
+					geometries[i] = drawLine(points[i]);
+				}
 			break;
 		}
 		
@@ -199,15 +245,16 @@ function speedoflight() {
 			geometries[i] = new THREE.BufferGeometry().fromGeometry(geometries[i]);
 		}
 		
-		//Start - definition des materials
+		//Start - define the material
 			var material = new THREE.MeshBasicMaterial({
 				color: 0xffffff, //Farbe der Linie
 				side: THREE.DoubleSide
 			});
-		//End - definition des materials
+		//End - define the material
 		
 		for (var i = 0; i < totalBrushes; i++) {
 			meshes[i] = new THREE.Mesh(geometries[i], material);
+			meshes[i].form = form; //necessary for the savingprocess
 			scene.add(meshes[i]);
 		}
 		
@@ -218,14 +265,19 @@ function speedoflight() {
 		//End - define animationsteps
 	}
 	
+	var setCanvasSize = function() {
+		containerWidth = containerElement.offsetWidth - 2; //2 is the border-width
+		containerHeight = containerElement.offsetHeight - 2; //2 is the border-width
+	}
+	
 	var drawLine = function(points) {
 		var path = new THREE.CatmullRomCurve3(points);
 		
 		geometry = new THREE.TubeGeometry(
 			path,
-			100, //segments (Qualität)
-			0.2, //radius (Dicke)
-			30,//radiusSegments (anzahl Ecken)
+			100, //segments
+			0.2, //radius 
+			30,//radiusSegments
 			false
 		);
 		
@@ -249,79 +301,59 @@ function speedoflight() {
 	var animate = function () {
 		requestAnimationFrame(animate);
 		
-		if (!isRecording) {
-			nEnd = (nEnd + nStep) % nMax;
-			
-			if (nEnd + nStep >= nMax) {
-				drawn = true;
-			}
-			
-			if (!drawn) {
-				for (var i = 0; i < meshes.length; i++) {
-					meshes[i].geometry.setDrawRange(0, nEnd);
-				}
-			}
-			
-			renderer.clear();
-			composer.render();
+		nEnd = (nEnd + nStep) % nMax;
+		
+		if (nEnd + nStep >= nMax) {
+			drawn = true;
 		}
-	}
-	
-	this.record = function() {
-		console.log('recording start..');
 		
-		//Start - disable camerarotation
-			controls.enabled = false;
-			isRecording = true;
-		//End - disable camerarotation
-		
-		nEnd = 0;
-		
-		var pictures = [];
-		
-		do {
-			nEnd = (nEnd + nStep) % nMax;
-			
+		if (!drawn) {
 			for (var i = 0; i < meshes.length; i++) {
 				meshes[i].geometry.setDrawRange(0, nEnd);
 			}
-			
-			renderer.clear();
-			composer.render();
-			
-			imgData = renderer.domElement.toDataURL();
-			pictures.push(imgData);
-		} while(nEnd + nStep < nMax)
+		}
 		
-		//Start - save cameraposition
-			console.log(camera.position.x);
-			console.log(camera.position.y);
-			console.log(camera.position.z);
-			console.log(camera.rotation.x);
-			console.log(camera.rotation.y);
-			console.log(camera.rotation.z);
-		//End - save cameraposition
+		renderer.clear();
+		composer.render();
+	}
+	
+	this.save = function() {
+		var result = new Object();
 		
-		//Start - enable camerarotation
-			isRecording = false;
-			controls.enabled = true;
-		//End - enable camerarotation
+		//Start - save thumbnail
+			result.image = renderer.domElement.toDataURL();
+		//End - save thumbnail
 		
-		console.log('recording stop..');
+		//Start - save cameraperspective
+			result.camera = new Object();
+			result.camera.position = new Object();
+			result.camera.position.x = camera.position.x;
+			result.camera.position.y = camera.position.y;
+			result.camera.position.z = camera.position.z;
+			result.camera.rotation = new Object();
+			result.camera.rotation.x = camera.rotation.x;
+			result.camera.rotation.y = camera.rotation.y;
+			result.camera.rotation.z = camera.rotation.z;
+		//End - save cameraperspective
 		
-		console.log(pictures.length);
+		//Start - save geometrysettings
+			result.geometry = new Object();
+			result.geometry.colors = meshes[0].material.color.getHSL();
+			result.geometry.form = meshes[0].form;
+		//End - save geometrysettings
+		
+		return result;
 	}
 	
 	var onWindowResize = function() {
-		windowHalfX = window.innerWidth / 2;
-		windowHalfY = window.innerHeight / 2;
+		setCanvasSize();
 		
-		camera.aspect = window.innerWidth / window.innerHeight;
+		camera.aspect = containerWidth / containerHeight;
 		camera.updateProjectionMatrix();
 		
-		renderer.setSize( window.innerWidth, window.innerHeight );
+		renderer.setSize(containerWidth, containerHeight);
 		
-		effectFXAA.uniforms[ 'resolution' ].value.set( 1 / window.innerWidth, 1 / window.innerHeight );
+		effectFXAA.uniforms['resolution'].value.set(1 / window.innerWidth, 1 / containerHeight);
 		
 		composer.reset();
 	}
